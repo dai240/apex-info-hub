@@ -25,26 +25,9 @@ import {
   TableRow,
 } from "@/components/ui/layout/table";
 
+import { getRankedMapForDate } from "@/lib/mapRotation";
+
 const events = [{ date: "2025-05-03", name: "憲法記念日", type: "holiday" }];
-
-// 🔽 ランクマップを取得（スプリット・順番に基づく）
-function getRankedMapForDate(date: Date) {
-  const split = currentSeason.splits.find(
-    (s) => new Date(s.startDate) <= date && new Date(s.endDate) >= date
-  );
-  if (!split) return null;
-
-  const start = new Date(split.startDate);
-  start.setHours(2, 0, 0, 0);
-  const base = new Date(date);
-  base.setHours(2, 0, 0, 0);
-
-  const diffDays = Math.floor(
-    (base.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const mapId = split.rankedMaps[diffDays % split.rankedMaps.length] as MapId;
-  return { ...mapMaster[mapId], id: mapId };
-}
 
 // 🔽 カレンダーに表示する日付（前月・当月・次月）
 function generateMonthDays(year: number, month: number) {

@@ -12,15 +12,27 @@ export function getCurrentSplit() {
   );
 }
 
-export function getRankedMapIndex(startDate: string): number {
-  const base = new Date(startDate);
-  const now = new Date();
-  base.setHours(2, 0, 0, 0);
-  now.setHours(2, 0, 0, 0);
-  return (
-    Math.floor((now.getTime() - base.getTime()) / (1000 * 60 * 60 * 24)) % 3
+export function getRankedMapIndex(startDate: string, nowArg?: Date): number {
+  const start = new Date(startDate);
+  const now = nowArg ? new Date(nowArg) : new Date();
+
+  // 🕑 スタートは 2:00 固定（スタート基準点）
+  start.setHours(2, 0, 0, 0);
+
+  // 🕒 現在時刻が 2:00 より前なら、1日前のマップとみなす
+  const adjustedNow = new Date(now);
+  if (adjustedNow.getHours() < 2) {
+    adjustedNow.setDate(adjustedNow.getDate() - 1);
+  }
+  adjustedNow.setHours(2, 0, 0, 0); // 基準点合わせ
+
+  const diffDays = Math.floor(
+    (adjustedNow.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
   );
+  return diffDays % 3;
 }
+
+
 
 export function getNextRankRotationTime(): Date {
   const now = new Date();
@@ -95,4 +107,38 @@ export function formatRotationRange(start: Date, end: Date): string {
     });
 
   return `${format(start)} ~ ${format(end)}`;
+}
+
+// 指定日のランクマップを取得（スプリットと日数に基づく）
+export function getRankedMapForDate(date: Date) {
+  const split = currentSeason.splits.find(
+    (s) => new Date(s.startDate) <= date && new Date(s.endDate) >= date
+  );
+  if (!split) return null;
+
+  const start = new Date(split.startDate);
+  start.setHours(2, 0, 0, 0); // ランクは2時切り替え
+  const base = new Date(date);
+  base.setHours(2, 0, 0, 0);
+
+  const diffDays = Math.floor(
+    (base.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const mapId = split.rankedMaps[diffDays % split.rankedMaps.length] as MapId;
+  return { ...mapMaster[mapId], id: mapId };
+}
+
+export function getCasualMapForDate(date: Date) {
+  const split = currentSeason.splits.find(
+    (s) => new Date(s.startDate) <= date && new Date(s.endDate) >= date
+  );
+  if (!split) return null;
+
+  const start = new Date(split.startDate).getTime();
+  const target = date.getTime();
+  const diffHours = Math.floor((target - start) / (1000 * 60 * 60));
+  const index = Math.floor(diffHours / 1.5) % split.casualMaps.length;
+
+  const mapId = split.casualMaps[index] as MapId;
+  return { ...mapMaster[mapId], id: mapId };
 }
